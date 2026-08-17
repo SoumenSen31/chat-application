@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cipher Line — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#07090F;
+    --bg-1:#0E1320;
+    --bg-2:#141A2A;
+    --panel: rgba(20, 26, 42, 0.55);
+    --panel-solid:#121A2C;
+    --panel-alt: rgba(10, 14, 24, 0.6);
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.12);
+    --text:#E8EDF5;
+    --text-muted:#74809A;
+    --text-dim:#4F5871;
+    --cipher:#3ED9A5;
+    --mine:#7C9CFF;
+    --warn:#FF6B5E;
+    --accent:#A78BFA;
+    --gradient: linear-gradient(135deg, #3ED9A5 0%, #7C9CFF 50%, #A78BFA 100%);
+    --glow-cipher: 0 0 24px rgba(62,217,165,0.35);
+    --glow-mine: 0 0 24px rgba(124,156,255,0.35);
+  }
+  *{box-sizing:border-box; -webkit-font-smoothing:antialiased;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(62,217,165,0.15), transparent 50%),
+      radial-gradient(ellipse at 80% 30%, rgba(167,139,250,0.12), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(124,156,255,0.15), transparent 50%),
+      var(--bg-0);
+    color:var(--text);
+    font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:40px 20px 80px;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    z-index:0;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .wrap{width:100%;max-width:680px; position:relative; z-index:1;}
+
+  /* Eyebrow / Header */
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--cipher); margin-bottom:14px;
+    display:inline-flex; align-items:center; gap:10px;
+    padding:8px 14px;
+    background: rgba(62,217,165,0.08);
+    border:1px solid rgba(62,217,165,0.2);
+    border-radius:999px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .eyebrow .dot{
+    width:7px; height:7px; border-radius:50%; background:var(--cipher);
+    box-shadow: 0 0 12px var(--cipher), 0 0 4px var(--cipher);
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:.4; transform:scale(0.85);}
+  }
+  h1{
+    font-size:38px; margin:0 0 8px; font-weight:700;
+    letter-spacing:-.02em; line-height:1.1;
+    background: var(--gradient);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subhead{
+    color:var(--text-muted); font-size:14px; margin:0 0 32px;
+    line-height:1.5; max-width: 480px;
+  }
+
+  /* Cards (Glass) */
+  .card{
+    background: var(--panel);
+    border:1px solid var(--border-strong);
+    border-radius:20px;
+    padding:24px; margin-bottom:18px;
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,0.04) inset,
+      0 24px 48px -16px rgba(0,0,0,0.5);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:''; position:absolute; inset:0; border-radius:20px; padding:1px;
+    background: linear-gradient(135deg, rgba(62,217,165,0.3), transparent 40%, rgba(124,156,255,0.3));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+    opacity:0.5;
+  }
+
+  /* Form fields */
+  .field{margin-bottom:14px;}
+  .field label{
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--text-muted); margin-bottom:7px;
+    font-family:'JetBrains Mono',monospace; letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .field label::before{
+    content:'◇'; color:var(--cipher); font-size:10px;
+  }
+  .field .row{display:flex;gap:8px;}
+  input[type=text]{
+    width:100%; background: rgba(10, 14, 24, 0.6);
+    border:1px solid var(--border-strong); border-radius:12px;
+    color:var(--text); padding:13px 15px;
+    font-size:14px; font-family:'JetBrains Mono',monospace;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    letter-spacing: 0.02em;
+  }
+  input[type=text]::placeholder{ color: var(--text-dim); }
+  input[type=text]:hover{ border-color: rgba(124,156,255,0.3); }
+  input[type=text]:focus{
+    outline:none;
+    border-color:var(--cipher);
+    background: rgba(10, 14, 24, 0.85);
+    box-shadow: 0 0 0 4px rgba(62,217,165,0.12), 0 0 20px rgba(62,217,165,0.2);
+  }
+  button{
+    background: var(--gradient); color:#0A0E1A; border:none;
+    border-radius:12px; padding:13px 22px;
+    font-weight:600; font-size:14px; cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:-0.01em;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    position:relative; overflow:hidden;
+    box-shadow: 0 4px 14px rgba(62,217,165,0.25);
+  }
+  button::after{
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.25), transparent 50%);
+    opacity:0; transition: opacity 0.2s;
+  }
+  button:hover{ transform: translateY(-1px); box-shadow: 0 8px 24px rgba(62,217,165,0.4);}
+  button:hover::after{ opacity:1; }
+  button:active{ transform: translateY(0); }
+  button:disabled{ opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  button.secondary{
+    background: rgba(255,255,255,0.04);
+    border:1px solid var(--border-strong);
+    color:var(--text-muted);
+    box-shadow:none;
+  }
+  button.secondary:hover{
+    background: rgba(62,217,165,0.08);
+    border-color: rgba(62,217,165,0.4);
+    color:var(--cipher);
+    box-shadow: 0 0 20px rgba(62,217,165,0.15);
+  }
+  button.secondary:hover::after{ opacity:0; }
+
+  /* Status */
+  .status{
+    display:flex; align-items:center; gap:10px;
+    font-size:13px; color:var(--text-muted);
+    font-family:'JetBrains Mono',monospace;
+    padding:10px 14px;
+    background: rgba(10, 14, 24, 0.4);
+    border:1px solid var(--border);
+    border-radius:10px;
+    transition: all 0.3s;
+  }
+  .status .led{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--text-dim); flex-shrink:0;
+    transition: all 0.3s;
+  }
+  .status.waiting{
+    background: rgba(232,185,77,0.06);
+    border-color: rgba(232,185,77,0.25);
+    color:#E8B94D;
+  }
+  .status.waiting .led{
+    background:#E8B94D;
+    box-shadow: 0 0 10px #E8B94D;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .status.secured{
+    background: rgba(62,217,165,0.06);
+    border-color: rgba(62,217,165,0.25);
+    color:var(--cipher);
+  }
+  .status.secured .led{
+    background:var(--cipher);
+    box-shadow: 0 0 10px var(--cipher), 0 0 4px var(--cipher);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status.error{
+    background: rgba(255,107,94,0.06);
+    border-color: rgba(255,107,94,0.25);
+    color:var(--warn);
+  }
+  .status.error .led{
+    background:var(--warn);
+    box-shadow: 0 0 10px var(--warn);
+  }
+
+  /* Safety number box */
+  .safety{
+    margin-top:14px; padding:14px 16px;
+    background: rgba(10, 14, 24, 0.5);
+    border:1px solid rgba(62,217,165,0.2);
+    border-radius:12px;
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+    position:relative; overflow:hidden;
+  }
+  .safety::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--cipher), transparent);
+  }
+  .safety .lbl{
+    font-size:10px; color:var(--text-muted);
+    text-transform:uppercase; letter-spacing:.08em;
+    margin-bottom:8px; display:flex; align-items:center; gap:6px;
+  }
+  .safety .lbl::before{ content:'◈'; color:var(--cipher); font-size:9px; }
+  .safety .num{
+    color:var(--cipher); letter-spacing:.05em;
+    font-weight:500; font-size:14px; line-height:1.6;
+    word-break: break-all;
+  }
+  .safety .hint{
+    color:var(--text-muted); font-size:12px; margin-top:10px;
+    line-height:1.55; font-family:'Space Grotesk',sans-serif;
+  }
+
+  /* View router */
+  .view{display:none;}
+  .view.active{display:block; animation: fadeUp .45s cubic-bezier(.4,0,.2,1);}
+
+  .chat-header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:14px 18px; margin-bottom:14px;
+    background: var(--panel);
+    border:1px solid var(--border-strong);
+    border-radius:16px;
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,0.04) inset,
+      0 16px 32px -16px rgba(0,0,0,0.5);
+  }
+  .chat-header .left{display:flex; flex-direction:column; gap:4px; min-width:0;}
+  .chat-header .room{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--text-muted); display:flex; align-items:center; gap:8px;
+  }
+  .chat-header .room::before{
+    content:''; width:7px; height:7px; border-radius:50%;
+    background:var(--cipher); box-shadow: 0 0 10px var(--cipher);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .chat-header .room b{
+    color:var(--cipher); font-weight:500; letter-spacing:.04em;
+    text-transform:none; font-size:12.5px;
+  }
+  .chat-header .tagline{
+    font-size:13px; color:var(--text); font-weight:500;
+  }
+  .chat-header .back-btn{
+    background: rgba(255,255,255,0.04);
+    border:1px solid var(--border-strong);
+    color:var(--text-muted);
+    border-radius:10px; padding:10px 14px;
+    font-size:12.5px; font-family:'JetBrains Mono',monospace;
+    display:inline-flex; align-items:center; gap:6px;
+    cursor:pointer; transition: all 0.2s;
+    box-shadow:none;
+  }
+  .chat-header .back-btn::before{ content:'←'; }
+  .chat-header .back-btn:hover{
+    background: rgba(62,217,165,0.08);
+    border-color: rgba(62,217,165,0.4);
+    color:var(--cipher);
+    box-shadow: 0 0 20px rgba(62,217,165,0.15);
+  }
+  .chat-header .back-btn:hover::after{ opacity:0; }
+
+  #view-chat.active .messages{ height: calc(100vh - 280px); min-height: 320px; }
+  /* Chat card */
+  #chat-card{ padding:0; overflow:hidden; }
+
+  .messages{
+    height:380px; overflow-y:auto; padding:16px;
+    display:flex; flex-direction:column; gap:10px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar{ width:8px; }
+  .messages::-webkit-scrollbar-track{ background:transparent; }
+  .messages::-webkit-scrollbar-thumb{
+    background: rgba(255,255,255,0.08);
+    border-radius:4px;
+  }
+  .messages::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.16); }
+  .bubble{
+    max-width:78%; padding:11px 14px; border-radius:16px;
+    font-size:14px; line-height:1.5;
+    word-wrap: break-word;
+    animation: bubbleIn 0.3s ease-out;
+  }
+  @keyframes bubbleIn{
+    from{ opacity:0; transform:translateY(8px) scale(0.96); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .bubble.mine{
+    align-self:flex-end;
+    background: linear-gradient(135deg, rgba(124,156,255,0.18), rgba(167,139,250,0.15));
+    border:1px solid rgba(124,156,255,0.3);
+    border-bottom-right-radius:4px;
+    color: var(--text);
+  }
+  .bubble.theirs{
+    align-self:flex-start;
+    background: rgba(255,255,255,0.04);
+    border:1px solid var(--border-strong);
+    border-bottom-left-radius:4px;
+    color: var(--text);
+  }
+  .bubble .meta{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; color:var(--text-muted);
+    margin-top:6px; display:flex; align-items:center; gap:4px;
+    opacity:0.8;
+  }
+  .bubble.mine .meta{ justify-content:flex-end; color: rgba(124,156,255,0.7); }
+  .bubble.theirs .meta{ color: rgba(62,217,165,0.7); }
+  .bubble .meta::before{
+    content:'●'; font-size:6px;
+  }
+  .sys{
+    align-self:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; color:var(--text-muted);
+    padding:6px 12px;
+    background: rgba(255,255,255,0.03);
+    border:1px solid var(--border);
+    border-radius:999px;
+    letter-spacing:0.05em;
+  }
+
+  .input-row{
+    border-top:1px solid var(--border);
+    padding:14px;
+    display:flex; gap:10px;
+    background: rgba(10, 14, 24, 0.3);
+  }
+  .input-row input{
+    flex:1;
+    background: rgba(10, 14, 24, 0.6);
+    border:1px solid var(--border-strong);
+    border-radius:12px;
+    padding:12px 14px;
+    color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+  }
+  .input-row input:focus{
+    outline:none; border-color:var(--cipher);
+    box-shadow: 0 0 0 3px rgba(62,217,165,0.12);
+  }
+  .input-row input:disabled{ opacity:.5; }
+  .input-row button{
+    padding:12px 20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .input-row button::before{
+    content:'↑'; font-size:16px; line-height:1; margin-right:2px;
+  }
+
+  /* Observer / wire inspector */
+  details{
+    margin-top:14px;
+    background: rgba(10, 14, 24, 0.5);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  details[open]{ background: rgba(10, 14, 24, 0.7); }
+  summary{
+    cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px; color:var(--text-muted);
+    display:flex; align-items:center; gap:8px;
+    list-style:none;
+    transition: color 0.2s;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  summary::before{
+    content:'▸'; transition: transform 0.2s; color:var(--cipher);
+  }
+  details[open] summary::before{ transform: rotate(90deg); }
+  summary:hover{ color:var(--cipher); }
+  .observer{
+    max-height:200px; overflow-y:auto; margin-top:12px;
+    display:flex; flex-direction:column; gap:8px;
+    padding-top:12px; border-top:1px dashed var(--border);
+  }
+  .observer::-webkit-scrollbar{ width:6px; }
+  .observer::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.08); border-radius:3px; }
+  .observer .frame{
+    background: rgba(255,255,255,0.02);
+    border:1px solid var(--border);
+    border-left:2px solid var(--accent);
+    border-radius:8px;
+    padding:8px 10px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    word-break:break-all;
+    color:var(--text-muted);
+    line-height:1.5;
+  }
+  .observer .frame b{
+    color:var(--text);
+    font-weight:600;
+    display:inline-block;
+    padding:2px 6px;
+    background: rgba(167,139,250,0.15);
+    border-radius:4px;
+    margin-right:6px;
+    font-size:9px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+
+  footer{
+    margin-top:24px; padding:16px 18px;
+    color:var(--text-muted); font-size:11.5px; line-height:1.7;
+    font-family:'JetBrains Mono',monospace;
+    background: rgba(255,255,255,0.02);
+    border:1px solid var(--border);
+    border-radius:12px;
+  }
+  footer::before{
+    content:'⚠ '; color:var(--warn); margin-right:4px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px){
+    body{ padding:24px 14px 60px; }
+    h1{ font-size:30px; }
+    .card{ padding:18px; border-radius:16px; }
+    .messages{ height:300px; }
+    .bubble{ max-width:85%; }
+    button{ padding:12px 18px; font-size:13.5px; }
+  }
+
+  /* Subtle load-in */
+  .wrap > *{ animation: fadeUp 0.6s ease-out backwards; }
+  .wrap > *:nth-child(1){ animation-delay: 0.05s; }
+  .wrap > *:nth-child(2){ animation-delay: 0.1s; }
+  .wrap > *:nth-child(3){ animation-delay: 0.2s; }
+  #setup-card{ animation-delay: 0.25s; }
+  #chat-card{ animation-delay: 0.3s; }
+  #observer-details{ animation-delay: 0.4s; }
+  footer{ animation-delay: 0.45s; }
+  @keyframes fadeUp{
+    from{ opacity:0; transform: translateY(12px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- SETUP VIEW -->
+  <div class="view active" id="view-setup">
+    <div class="eyebrow"><span class="dot"></span>WEBSOCKET RELAY · ECDH P-256 · AES-256-GCM</div>
+    <h1>Cipher Line</h1>
+    <p class="subhead">End-to-end encrypted chat. Keys are derived in your browser. The relay only forwards opaque frames.</p>
+
+    <div class="card" id="setup-card">
+      <div class="field">
+        <label>Relay server</label>
+        <input type="text" id="relay-url" />
+      </div>
+      <div class="field">
+        <label>Room code — share this with your friend through any channel</label>
+        <div class="row">
+          <input type="text" id="room-code" />
+          <button class="secondary" id="new-code">New code</button>
+        </div>
+      </div>
+      <div class="field">
+        <button id="connect-btn" style="width:100%;">Connect</button>
+      </div>
+      <div class="status" id="status"><span class="led"></span><span id="status-text">Not connected</span></div>
+    </div>
+
+    <details id="observer-details" style="display:none;">
+      <summary>What the relay server actually sees</summary>
+      <div class="observer" id="observer"></div>
+    </details>
+
+    <footer>
+      The safety number above is derived from both public keys. Read it to your friend over a call (not through
+      this chat) before trusting the connection — if it doesn't match what they see, someone is between you.
+      The relay server only ever forwards the frames shown above; it holds no key capable of reading them.
+    </footer>
+  </div>
+
+  <!-- CHAT VIEW -->
+  <div class="view" id="view-chat">
+    <div class="chat-header">
+      <div class="left">
+        <div class="room">Room · <b id="chat-room">—</b></div>
+        <div class="tagline">Secure channel · end-to-end encrypted</div>
+      </div>
+      <button class="back-btn" id="back-btn" type="button">Back</button>
+    </div>
+    <div class="card" id="chat-card">
+      <div class="messages" id="messages"></div>
+      <div class="input-row">
+        <input type="text" id="msg-input" placeholder="Type a message…" disabled />
+        <button id="send-btn" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  let ws = null;
+  let myKeyPair = null;
+  let myRawPub = null;
+  let sharedKey = null;
+  let sentPubkey = false;
+  let room = '';
+
+  const WORDS = ['ember','quartz','harbor','lattice','ridge','copper','signal','cobalt','marsh','vellum','indigo','thistle','granite','tundra','saffron','onyx'];
+  function randomRoomCode(){
+    const a = WORDS[Math.floor(Math.random()*WORDS.length)];
+    const b = WORDS[Math.floor(Math.random()*WORDS.length)];
+    const n = Math.floor(Math.random()*90+10);
+    return `${a}-${b}-${n}`;
+  }
+
+  function defaultRelayUrl(){
+    const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    return proto + location.host;
+  }
+
+  function bufToB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+  function b64ToBuf(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+  function toGroupedHex(buf, groups=6, groupSize=4){
+    const bytes = new Uint8Array(buf);
+    let hex = Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+    hex = hex.slice(0, groups*groupSize);
+    return hex.match(new RegExp(`.{1,${groupSize}}`,'g')).join(' ');
+  }
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  function nowStamp(){ return new Date().toTimeString().slice(0,8); }
+
+  function setStatus(text, cls){
+    const el = $('status');
+    el.className = 'status' + (cls ? ' ' + cls : '');
+    $('status-text').textContent = text;
+  }
+
+  function logObserver(direction, obj){
+    $('observer-details').style.display = 'block';
+    const box = $('observer');
+    const el = document.createElement('div');
+    el.className = 'frame';
+    const preview = JSON.stringify(obj).slice(0, 160);
+    el.innerHTML = `<b>${direction}</b> ${escapeHtml(preview)}${preview.length>=160?'…':''}`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function appendSys(text){
+    const box = $('messages');
+    const el = document.createElement('div');
+    el.className = 'sys';
+    el.textContent = text;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function appendBubble(text, mine){
+    const box = $('messages');
+    const el = document.createElement('div');
+    el.className = 'bubble ' + (mine ? 'mine' : 'theirs');
+    el.innerHTML = `<div>${escapeHtml(text)}</div><div class="meta">${mine ? 'sent' : 'decrypted'} · ${nowStamp()}</div>`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function ensureKeyPair(){
+    if (myKeyPair) return;
+    myKeyPair = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveKey']);
+    myRawPub = await crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+  }
+
+  async function maybeSendPubkey(){
+    if (sentPubkey) return;
+    await ensureKeyPair();
+    const payload = {type:'pubkey', data: bufToB64(myRawPub)};
+    ws.send(JSON.stringify(payload));
+    logObserver('you →', payload);
+    sentPubkey = true;
+  }
+
+  function armStallHint(){
+    clearTimeout(window.__stallTimer);
+    window.__stallTimer = setTimeout(() => {
+      if (!sharedKey){
+        const el = $('status');
+        if (el.className.includes('waiting')){
+          $('status-text').textContent += ' — taking a while? try refreshing both tabs and reconnecting';
+        }
+      }
+    }, 8000);
+  }
+
+  async function onPubkey(msg){
+    clearTimeout(window.__stallTimer);
+    logObserver('peer →', msg);
+    await ensureKeyPair();
+    const peerRaw = b64ToBuf(msg.data);
+    const peerKey = await crypto.subtle.importKey('raw', peerRaw, {name:'ECDH', namedCurve:'P-256'}, false, []);
+    sharedKey = await crypto.subtle.deriveKey(
+      {name:'ECDH', public: peerKey}, myKeyPair.privateKey,
+      {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+    );
+    const sorted = [bufToB64(myRawPub), msg.data].sort().join('');
+    const fp = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sorted));
+    showSafetyNumber(toGroupedHex(fp));
+    setStatus('Secured — end-to-end encrypted', 'secured');
+    if ($('chat-room')) $('chat-room').textContent = room;
+    showView('chat');
+    $('msg-input').disabled = false;
+    $('send-btn').disabled = false;
+    appendSys('Secure channel established');
+  }
+
+  function showSafetyNumber(fp){
+    let box = $('safety-box');
+    if (!box){
+      box = document.createElement('div');
+      box.id = 'safety-box';
+      box.className = 'safety';
+      $('setup-card').appendChild(box);
+    }
+    box.innerHTML = `<div class="lbl">Safety number</div><div class="num">${fp}</div>
+      <div class="hint">Read this to your friend over a call. It must match exactly on both sides.</div>`;
+  }
+
+  // View router: only one view is .active at a time.
+  function showView(name){
+    ['setup','chat'].forEach(n => {
+      const v = $('view-'+n);
+      if (v) v.classList.toggle('active', n === name);
+    });
+    // Reset transient state when entering chat.
+    if (name === 'chat'){
+      const input = $('msg-input');
+      if (input) input.value = '';
+    }
+  }
+
+  async function connect(){
+    room = $('room-code').value.trim();
+    if (!room){ setStatus('Enter a room code first', 'error'); return; }
+    const url = $('relay-url').value.trim();
+    $('connect-btn').disabled = true;
+
+    try{
+      ws = new WebSocket(url);
+    } catch(e){
+      setStatus('Invalid relay address', 'error');
+      $('connect-btn').disabled = false;
+      return;
+    }
+
+    ws.addEventListener('open', async () => {
+      setStatus('Connected to relay — waiting for peer…', 'waiting');
+      await ensureKeyPair();
+      ws.send(JSON.stringify({type:'join', room}));
+      armStallHint();
+    });
+
+    ws.addEventListener('message', async (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+
+      if (msg.type === 'joined'){
+        if (msg.peerPresent){
+          setStatus('Peer already here — exchanging keys…', 'waiting');
+          await maybeSendPubkey();
+        } else {
+          setStatus('Connected to relay — waiting for peer…', 'waiting');
+        }
+        return;
+      }
+      if (msg.type === 'peer-joined'){
+        setStatus('Peer joined — exchanging keys…', 'waiting');
+        await maybeSendPubkey();
+        return;
+      }
+      if (msg.type === 'pubkey'){
+        await onPubkey(msg);
+        return;
+      }
+      if (msg.type === 'msg'){
+        logObserver('peer →', msg);
+        if (!sharedKey) return;
+        try{
+          const iv = b64ToBuf(msg.iv);
+          const ct = b64ToBuf(msg.ct);
+          const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, sharedKey, ct);
+          appendBubble(new TextDecoder().decode(pt), false);
+        } catch(e){
+          appendSys('Received a message that failed to decrypt (wrong or missing key)');
+        }
+        return;
+      }
+      if (msg.type === 'peer-left'){
+        setStatus('Peer disconnected — waiting to reconnect…', 'waiting');
+        sharedKey = null; sentPubkey = false;
+        $('msg-input').disabled = true; $('send-btn').disabled = true;
+        appendSys('Your friend disconnected');
+        return;
+      }
+      if (msg.type === 'error'){
+        setStatus(msg.message, 'error');
+        $('connect-btn').disabled = false;
+        return;
+      }
+    });
+
+    ws.addEventListener('close', () => {
+      setStatus('Disconnected from relay', 'error');
+      $('connect-btn').disabled = false;
+      $('msg-input').disabled = true; $('send-btn').disabled = true;
+    });
+
+    ws.addEventListener('error', () => {
+      setStatus('Could not reach relay server', 'error');
+      $('connect-btn').disabled = false;
+    });
+  }
+
+  async function sendMessage(){
+    const input = $('msg-input');
+    const text = input.value.trim();
+    if (!text || !sharedKey) return;
+    input.value = '';
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, sharedKey, new TextEncoder().encode(text));
+    const payload = {type:'msg', iv: bufToB64(iv), ct: bufToB64(ct)};
+    ws.send(JSON.stringify(payload));
+    logObserver('you →', payload);
+    appendBubble(text, true);
+  }
+
+  // init
+  $('relay-url').value = defaultRelayUrl();
+  const params = new URLSearchParams(location.search);
+  $('room-code').value = params.get('room') || randomRoomCode();
+  $('new-code').addEventListener('click', () => { $('room-code').value = randomRoomCode(); });
+  $('connect-btn').addEventListener('click', connect);
+  $('send-btn').addEventListener('click', sendMessage);
+  $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  const backBtn = $('back-btn');
+  if (backBtn) backBtn.addEventListener('click', () => showView('setup'));
+})();
+</script>
+</body>
+</html>
