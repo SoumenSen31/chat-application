@@ -53,7 +53,7 @@ first connection after a while may take a few seconds to wake up.
 
 ## 3. Chat with your friend
 
-Once deployed, open `https://your-app.onrender.com`. Click **New code** to get
+Once deployed, open (https://chat-application-m89g.onrender.com). Click **New code** to get
 a room code (e.g. `ember-quartz-42`), or use **Copy invite link** — the room
 code travels in the URL as `?room=...`. Send that link (or just the code) to
 your friend through any channel: text, email, whatever. Both of you open the
